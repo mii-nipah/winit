@@ -371,6 +371,15 @@ impl<T: 'static> EventLoop<T> {
     where
         F: FnMut(event::Event<T>, &RootAEL),
     {
+        // Gamepads and joysticks go on to the activity: winit has no events for their axes.
+        let source = match event {
+            InputEvent::MotionEvent(event) => event.source(),
+            InputEvent::KeyEvent(event) => event.source(),
+            _ => android_activity::input::Source::Keyboard,
+        };
+        if u32::from(source) & 0x0100_0400 != 0 {
+            return InputStatus::Unhandled;
+        }
         let mut input_status = InputStatus::Handled;
         match event {
             InputEvent::MotionEvent(motion_event) => {
